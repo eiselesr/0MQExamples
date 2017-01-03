@@ -3,6 +3,9 @@ import logging
 
 import netifaces
 
+import json # I don't know how to send things that aren't strings and json can make structures into strings
+import sys #for tprint
+
 class peer():
     def __init__(self):
         #--------Setup logger-------------------------
@@ -26,13 +29,20 @@ class peer():
         #Register Poller
         self.poller.register(self.router, zmq.POLLIN)
         
-        #Get this port's ip address and bind the router to an ephemeral port
+        #Get this port's ip address
         self.setupIfaces()
+        
+        # connected peers
+        self.mailbox = {}
+        
+        
+        self.logger.info("Init complete %s", self)
+    def bindRandom(self):
         self.portNum = self.router.bind_to_random_port("tcp://" + self.localHost)        
         self.logger.info("Router ephemeral Address:%s: %s", self.globalHost, self.portNum)
         
-        
-        self.logger.info("Init complete")
+    def bind(self, port):
+        self.portNum = self.router.bind("tcp://*:%s" % port)
         
     def setupIfaces(self):
         '''
@@ -81,15 +91,35 @@ class peer():
             #recv_multipart blocks by default, but we know we won't have to block
             #because we can check for messages with the poller
             id, msg = self.router.recv_multipart()
+            print(id, msg)
+            self.connect(str(msg.decode()))
             self.tprint(msg.decode())
-            return msg.decode()
+            #return msg.decode()
+            #self.connect(id)
         
         #router.send_multipart([id, msg+b"world"])
         
+    def connect(self, peer):
+        self.mailbox[peer] = self.context.socket(zmq.DEALER)
+        print (self.mailbox)
+        self.mailbox[peer].connect('tcp://localhost:%s' % peer)
     
     
     
-p = peer()
-p.poll()
+p1 = peer()
+p1.bindRandom()
+p2 =  peer()
+p2.bind(5555)
 
-print (p)
+p1.connect('5555')
+
+p1.mailbox['5555'].send_string(json.dumps(p1.portNum))
+
+
+p2.poll()
+
+#  client.send_multipart([
+#         address,
+#         b'',
+#         b'This is the workload',
+#     ])
