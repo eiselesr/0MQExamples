@@ -26,11 +26,11 @@ for request in range(10):
     logging.info("Response: %s", pprint.pformat(events))
     if socket in events:
         message = socket.recv()
-        print("Received reply %s [ %s ]" % (request, message))
+        print("Received reply [ %s ]" % (message))
         
 while True:
     #  Get the reply.
     events = dict(poller.poll(10))
     if socket in events:
         message = socket.recv()
-        print("Received reply %s [ %s ]" % (request, message))
+        print("Received reply [ %s ]" % (message))
